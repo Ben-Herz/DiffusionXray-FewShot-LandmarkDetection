@@ -71,6 +71,8 @@ In particular, it is possible to download:
 
 Accepted at WACV (Winter Conference on Applications of Computer Vision) 2025.
 
+If you use this code or findings in your research, please cite:
+
 ### Bibtex
 ```
 @InProceedings{Di_Via_2025_WACV,
