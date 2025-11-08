@@ -35,28 +35,41 @@ class Chest(torch.utils.data.Dataset):
         self.pth_Image = os.path.join(prefix, 'pngs')
         self.pth_Label = os.path.join(prefix, 'labels')
 
-        # file index
-        files = [i[:-4] for i in sorted(os.listdir(self.pth_Image))]
-
+        # file index - only include files that have both image and landmark
+        image_files = [i[:-4] for i in sorted(os.listdir(self.pth_Image))]
+        label_files = [i[:-4] for i in sorted(os.listdir(self.pth_Label))]
+        
+        # Only keep files that exist in both directories
+        files = list(set(image_files) & set(label_files))
+        files.sort()  # maintain sorted order
+        
         exclude_list = ['CHNCXR_0059_0', 'CHNCXR_0178_0', 'CHNCXR_0228_0', 'CHNCXR_0267_0', 'CHNCXR_0295_0', 'CHNCXR_0310_0', 'CHNCXR_0285_0', 'CHNCXR_0276_0', 'CHNCXR_0303_0']
         if exclude_list is not None:
             st = set(exclude_list)
             files = [f for f in files if f not in st]
 
         n = len(files)
-        train_num = 195  
-        val_num = 34 
+        
+        # Adjust split sizes based on available data
+        max_train = min(195, n)
+        max_val = min(34, n - max_train)
+        
+        train_num = max_train if self.phase == 'train' else max_train
+        val_num = max_val if self.phase == 'validate' else max_val
         test_num = n - train_num - val_num
+        
         if self.phase == 'train':
             self.indexes = files[:train_num]
         elif self.phase == 'validate':
-            self.indexes = files[train_num:-test_num]
+            self.indexes = files[train_num:train_num+val_num]
         elif self.phase == 'test':
-            self.indexes = files[-test_num:]
+            self.indexes = files[train_num+val_num:] if test_num > 0 else []
         elif self.phase == 'all':
             self.indexes = files
         else:
             raise Exception("Unknown phase: {phase}".format(phase=phase))
+            
+        print(f"Chest dataset {self.phase}: {len(self.indexes)} files available (total: {n})")
 
     def __getitem__(self, index):
         name = self.indexes[index]
@@ -389,5 +402,3 @@ class Cephalo(torch.utils.data.Dataset):
             ])
         else:
             raise ValueError('phase must be either "train" or "validate" or "test"')
-
-

@@ -1,0 +1,9 @@
+datasets/
+__pycache__/
+datasets/chest/labels/CHNCXR_0001_0.txt
+.DS_Store
+logs/
+log_file.txt
+*.png
+*.pt
+downstream_task/landmarks_experiments/experiments_results.txt

@@ -10,8 +10,22 @@ Deep neural networks have been extensively applied in the medical domain for var
 
 # Getting Started
 ## Installation
-Install python packages
+
+### For Apple Silicon Macs (Recommended)
+For Apple Silicon Macs, please refer to the detailed [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) which provides optimized instructions for M1/M2/M3 chips with MPS (Metal Performance Shaders) support.
+
+### For Other Systems
+Install python packages:
 ```
+pip install -r requirements.txt
+```
+
+**Note**: If you encounter package conflicts or build errors, try installing packages individually:
+```bash
+# Install PyTorch first
+pip install torch torchvision
+
+# Then install other requirements
 pip install -r requirements.txt
 ```
 

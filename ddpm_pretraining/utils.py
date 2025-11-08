@@ -28,12 +28,18 @@ def generate_path(path):
         os.makedirs(path)
     return path
 
-# Get the current GPU memory usage by tensors in megabytes for a given device
+# Get the current memory usage by tensors in megabytes for a given device
 def gpu_memory_usage(device):
-    allocated = torch.cuda.memory_allocated(device)
-    reserved = torch.cuda.memory_reserved(device)
-    print(f'Allocated memory: {allocated / (1024 ** 2):.2f} MB')
-    print(f'Reserved memory: {reserved / (1024 ** 2):.2f} MB')
+    if device.type == "cuda":
+        allocated = torch.cuda.memory_allocated(device)
+        reserved = torch.cuda.memory_reserved(device)
+        print(f'Allocated memory: {allocated / (1024 ** 2):.2f} MB')
+        print(f'Reserved memory: {reserved / (1024 ** 2):.2f} MB')
+    elif device.type == "mps":
+        # MPS doesn't have the same memory reporting functions as CUDA
+        print("Memory usage reporting not available for MPS")
+    else:
+        print("Memory usage reporting only available for CUDA and MPS devices")
 
 # Compute the number of trainable parameters in a model
 def count_parameters(model):
@@ -172,7 +178,3 @@ def load_data(dataset_path, image_size, image_channels, batch_size, pin_memory=F
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_memory, drop_last=False)
     
     return train_dataloader, test_dataloader
-
-
-
-

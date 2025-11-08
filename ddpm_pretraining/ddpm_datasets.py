@@ -13,7 +13,6 @@ import albumentations as A
 import albumentations.pytorch
 
 import torch
-import utils
 from skimage.transform import resize
 
 # ------------------------------------------------------------------------
@@ -203,5 +202,3 @@ class CephaloDiffusionDataset(Dataset):
             image = self.transform(image=image_np)['image']
             
         return image
-    
-        

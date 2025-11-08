@@ -23,7 +23,7 @@ class DDPM:
         self,
         image_size: int = 256,
         channels: int = 3,
-        device = "cuda",
+        device = "cpu",
         lr: float = 1e-4,
         optimizer: str = "adam",
         timesteps: int = 1000,
@@ -194,20 +194,3 @@ class DDPM:
         plt.axis('off')
         plt.savefig(filename, bbox_inches='tight')
         plt.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

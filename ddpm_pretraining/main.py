@@ -51,14 +51,21 @@ if __name__ == "__main__":
     print("Python version: {}".format(sys.version))
     print("Pytorch version: {}".format(torch.__version__))
     
-    if "CUDA_VISIBLE_DEVICES" in os.environ:
-        GPU = os.environ["CUDA_VISIBLE_DEVICES"]
+    # Check for available devices (CUDA for NVIDIA, MPS for Apple Silicon, CPU as fallback)
+    if torch.cuda.is_available():
+        if "CUDA_VISIBLE_DEVICES" in os.environ:
+            GPU = os.environ["CUDA_VISIBLE_DEVICES"]
+        else:
+            GPU = config["gpu"]
+            os.environ["CUDA_VISIBLE_DEVICES"] = f"{GPU}"
+        device = torch.device("cuda")
+        print(f"Torch GPU Name: {torch.cuda.get_device_name(0)}... Using GPU {GPU}")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("Torch MPS available... Using Apple Silicon GPU")
     else:
-        GPU = config["gpu"]
-        os.environ["CUDA_VISIBLE_DEVICES"] = f"{GPU}"
-        
-    device = f"cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Torch GPU Name: {torch.cuda.get_device_name(0)}... Using GPU {GPU}" if device == "cuda" else "Torch GPU not available... Using CPU")
+        device = torch.device("cpu")
+        print("Torch GPU not available... Using CPU")
         
     print("------------------------------------------------------------------------------------------------")
 
@@ -106,4 +113,3 @@ if __name__ == "__main__":
     train_diffusion_model(config, train_dataloader, save_model_path, PREFIX_PATH, device, continue_training=config["model"]["continue_training"])
 
     print("----------------------------------------- END TRAINING -----------------------------------------")
-    

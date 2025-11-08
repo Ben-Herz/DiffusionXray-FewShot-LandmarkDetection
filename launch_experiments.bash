@@ -1,8 +1,21 @@
 #!/bin/bash
+
+# Check for Apple Silicon Mac
+if [[ $(uname -m) == "arm64" ]]; then
+    echo "Apple Silicon Mac detected"
+    echo "Note: This system uses MPS (Metal Performance Shaders) instead of CUDA"
+    echo "Make sure PyTorch is installed with MPS support"
+    echo ""
+fi
+
 # Check if more than one gpu is available, if so ask for which one to use
-if [ $(nvidia-smi --query-gpu=count --format=csv,noheader | wc -l) -gt 1 ]; then
-    read -p "Insert the GPU number to use: " GPU
-    export CUDA_VISIBLE_DEVICES=$GPU
+if command -v nvidia-smi &> /dev/null; then
+    if [ $(nvidia-smi --query-gpu=count --format=csv,noheader | wc -l) -gt 1 ]; then
+        read -p "Insert the GPU number to use: " GPU
+        export CUDA_VISIBLE_DEVICES=$GPU
+    fi
+else
+    echo "NVIDIA GPU not detected. If you're on Apple Silicon, MPS will be used automatically."
 fi
 
 # Ask for which experiment to run
@@ -24,6 +37,3 @@ case $EXPERIMENT in
         echo "Invalid experiment number" 
         ;;
 esac
-
-
-

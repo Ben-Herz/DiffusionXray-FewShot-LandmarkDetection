@@ -20,6 +20,7 @@ from tqdm import tqdm
 from torchmetrics import MeanSquaredError
 from torchmetrics.image import StructuralSimilarityIndexMeasure
 from torchmetrics.image.fid import FrechetInceptionDistance
+from torch.utils.tensorboard import SummaryWriter
 
 # Custom libraries
 from utils import *
@@ -159,6 +160,9 @@ def train_diffusion_model(config, train_dataloader, save_model_path, root_path, 
     mse = MeanSquaredError()
     fid = FrechetInceptionDistance(normalize=True)
     
+    # Initialize TensorBoard writer
+    writer = SummaryWriter(log_dir=f"{root_path}/logs")
+
     # Start training
     start_time = time.time()
 
@@ -166,7 +170,8 @@ def train_diffusion_model(config, train_dataloader, save_model_path, root_path, 
         # Train diffusion model
         for epoch in tqdm(range(start_epoch, epochs), initial=start_epoch, total=epochs, desc="Epoch"):
             epoch_loss = 0.0
-            torch.cuda.empty_cache()
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
             
             for batch_idx, data in enumerate(tqdm(train_dataloader, desc="Batch", leave=False)):
 
@@ -187,6 +192,20 @@ def train_diffusion_model(config, train_dataloader, save_model_path, root_path, 
                 loss.backward()
                 loss = loss / grad_accumulation  # Normalize loss to account for batch accumulation
                 epoch_loss += loss.item()
+                
+                # Log training loss to TensorBoard
+                if n_iter % 10 == 0:  # Log every 10 iterations
+                    writer.add_scalar('Loss/train', loss.item(), n_iter)
+                    writer.add_scalar('LR', ddpm.optimizer.param_groups[0]['lr'], n_iter)
+                    
+                    # Log gradient norm
+                    total_norm = 0
+                    for p in ddpm.model.parameters():
+                        if p.grad is not None:
+                            param_norm = p.grad.detach().data.norm(2)
+                            total_norm += param_norm.item() ** 2
+                    total_norm = total_norm ** (1. / 2)
+                    writer.add_scalar('Grad Norm', total_norm, n_iter)
                 
                 # Update weights
                 if ((batch_idx + 1) % grad_accumulation == 0) or (batch_idx + 1 == len(train_dataloader)):
@@ -297,6 +316,17 @@ def train_diffusion_model(config, train_dataloader, save_model_path, root_path, 
                     # Log and print message
                     print(message)
                     logging.info(message)
+                    
+                    # Log metrics to TensorBoard
+                    writer.add_scalar('Loss/avg_train', loss.item(), n_iter)
+                    writer.add_scalar('Metrics/SSIM', ssim_metric.item(), n_iter)
+                    writer.add_scalar('Metrics/MSE', mse_metric.item(), n_iter)
+                    writer.add_scalar('Metrics/FID', fid_score, n_iter)
+                    
+                    if use_ema:
+                        writer.add_scalar('Metrics/EMA_SSIM', ema_ssim_metric.item(), n_iter)
+                        writer.add_scalar('Metrics/EMA_MSE', ema_mse_metric.item(), n_iter)
+                        writer.add_scalar('Metrics/EMA_FID', ema_fid_score, n_iter)
                                         
                     # Set model back to train mode
                     ddpm.model.train()
@@ -321,6 +351,8 @@ def train_diffusion_model(config, train_dataloader, save_model_path, root_path, 
         if use_ema: save_ema_model(ddpm.ema_model, epoch, n_iter, save_model_path, name="last_ema_model")
         
     finally:
+        # Close TensorBoard writer
+        writer.close()
         print(f"Training completed in {time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time))}")
         logging.info(f"Training completed in {time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time))}")
         del ddpm
