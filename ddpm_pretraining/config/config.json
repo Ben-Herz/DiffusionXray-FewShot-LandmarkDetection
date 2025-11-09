@@ -37,8 +37,8 @@
         "path": "datasets/",
         "image_size": 256,
         "image_channels": 1,
-        "batch_size": 4,
-        "grad_accumulation": 8,
+        "batch_size": 8,
+        "grad_accumulation": 4,
         "num_workers": null,
         "pin_memory": true
     }

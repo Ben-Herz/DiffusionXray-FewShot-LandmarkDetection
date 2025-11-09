@@ -156,8 +156,13 @@ def get_transforms(image_size, phase='train'):
         raise ValueError('phase must be either "train" or "test"')
 
 
-def load_data(dataset_path, image_size, image_channels, batch_size, pin_memory=False, num_workers = os.cpu_count()):    
+def load_data(dataset_path, image_size, image_channels, batch_size, pin_memory=True, num_workers=None):    
     dataset_name = os.path.basename(dataset_path)
+    
+    # Optimize num_workers for multi-GPU training
+    if num_workers is None:
+        # Use more workers for multi-GPU training, but not too many to avoid overhead
+        num_workers = min(8, os.cpu_count() // 2)  # Limit to 8 workers max
     
     transforms_train = get_transforms(image_size, phase='train')
     transforms_test = get_transforms(image_size, phase='test')
@@ -174,6 +179,7 @@ def load_data(dataset_path, image_size, image_channels, batch_size, pin_memory=F
     else:
         raise ValueError('Dataset name must be either "chest" or "hand" or "cephalo"')
     
+    # Enable pin_memory by default for better GPU transfer performance
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory, drop_last=True)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_memory, drop_last=False)
     

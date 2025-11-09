@@ -177,8 +177,7 @@ def train_diffusion_model(config, train_dataloader, save_model_path, root_path, 
         # Train diffusion model
         for epoch in tqdm(range(start_epoch, epochs), initial=start_epoch, total=epochs, desc="Epoch"):
             epoch_loss = 0.0
-            if device.type == "cuda":
-                torch.cuda.empty_cache()
+            # Removed torch.cuda.empty_cache() call to improve performance
             
             for batch_idx, data in enumerate(tqdm(train_dataloader, desc="Batch", leave=False)):
 
@@ -229,9 +228,10 @@ def train_diffusion_model(config, train_dataloader, save_model_path, root_path, 
                     # Update number of steps                
                     n_iter += 1    
 
-                    # Save model checkpoint after each training step
-                    save_model(ddpm.model, ddpm.optimizer, epoch, n_iter, loss, save_model_path, name="last_model")
-                    if use_ema: save_ema_model(ddpm.ema_model, epoch, n_iter, save_model_path, name="last_ema_model")
+                    # Save model checkpoint less frequently to improve performance
+                    if n_iter % 100 == 0:  # Save every 100 iterations instead of every iteration
+                        save_model(ddpm.model, ddpm.optimizer, epoch, n_iter, loss, save_model_path, name="last_model")
+                        if use_ema: save_ema_model(ddpm.ema_model, epoch, n_iter, save_model_path, name="last_ema_model")
         
                 # Compute Metrics
                 if n_iter % freq_metrics == 0 and batch_idx % grad_accumulation == 0 and n_iter != 0:
