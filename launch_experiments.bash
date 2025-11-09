@@ -8,11 +8,14 @@ if [[ $(uname -m) == "arm64" ]]; then
     echo ""
 fi
 
-# Check if more than one gpu is available, if so ask for which one to use
+# Check if more than one gpu is available, if so use all GPUs
 if command -v nvidia-smi &> /dev/null; then
-    if [ $(nvidia-smi --query-gpu=count --format=csv,noheader | wc -l) -gt 1 ]; then
-        read -p "Insert the GPU number to use: " GPU
-        export CUDA_VISIBLE_DEVICES=$GPU
+    GPU_COUNT=$(nvidia-smi --query-gpu=count --format=csv,noheader | head -1)
+    if [ "$GPU_COUNT" -gt 1 ]; then
+        echo "Multiple GPUs detected ($GPU_COUNT). Using all available GPUs."
+        # Don't set CUDA_VISIBLE_DEVICES to use all GPUs
+    else
+        echo "Single GPU detected. Using default GPU."
     fi
 else
     echo "NVIDIA GPU not detected. If you're on Apple Silicon, MPS will be used automatically."

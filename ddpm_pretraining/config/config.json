@@ -1,5 +1,4 @@
 {
-    "gpu": 0,
     "experiment_path": "ddpm_pretraining/ddpm_pretraining_experiments",
     "model_for_inference": "",
     "model": {

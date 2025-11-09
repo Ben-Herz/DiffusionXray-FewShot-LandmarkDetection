@@ -1,0 +1,7 @@
+Total Trainable Params: 558548225
+Total Trainable Params: 558548225
+Training completed in 00:06:14
+Total Trainable Params: 558548225
+Training completed in 00:14:29
+Total Trainable Params: 558548225
+Training completed in 01:40:59

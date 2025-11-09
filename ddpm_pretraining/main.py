@@ -53,13 +53,10 @@ if __name__ == "__main__":
     
     # Check for available devices (CUDA for NVIDIA, MPS for Apple Silicon, CPU as fallback)
     if torch.cuda.is_available():
-        if "CUDA_VISIBLE_DEVICES" in os.environ:
-            GPU = os.environ["CUDA_VISIBLE_DEVICES"]
-        else:
-            GPU = config["gpu"]
-            os.environ["CUDA_VISIBLE_DEVICES"] = f"{GPU}"
         device = torch.device("cuda")
-        print(f"Torch GPU Name: {torch.cuda.get_device_name(0)}... Using GPU {GPU}")
+        print(f"Using {torch.cuda.device_count()} CUDA GPU(s)")
+        if "CUDA_VISIBLE_DEVICES" in os.environ:
+            print(f"CUDA_VISIBLE_DEVICES: {os.environ['CUDA_VISIBLE_DEVICES']}")
     elif torch.backends.mps.is_available():
         device = torch.device("mps")
         print("Torch MPS available... Using Apple Silicon GPU")

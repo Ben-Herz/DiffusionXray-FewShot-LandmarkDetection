@@ -71,6 +71,13 @@ def initialize_ddpm(config: Dict[str, Any], phase: str, device: torch.device) ->
     else:
         raise ValueError(f"Phase {phase} is not valid. Must be either 'train' or 'test'")
 
+    # Wrap model with DataParallel if multiple GPUs are available
+    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
+        print(f"Using {torch.cuda.device_count()} GPUs with DataParallel")
+        ddpm.model = torch.nn.DataParallel(ddpm.model)
+        if hasattr(ddpm, 'ema_model') and ddpm.ema_model is not None:
+            ddpm.ema_model = torch.nn.DataParallel(ddpm.ema_model)
+    
     return ddpm
 
 def save_model(model, optimizer, epoch, n_iter, loss, save_path, name="last_model"):
