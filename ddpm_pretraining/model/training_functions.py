@@ -125,7 +125,7 @@ def load_ema_model(save_model_path, device, ddpm):
 # ------------------------------------------------------------------------
 
 
-def train_diffusion_model(config, train_dataloader, save_model_path, root_path, device, continue_training=False):
+def train_diffusion_model(config, train_dataloader, test_dataloader, save_model_path, root_path, device, run_id, continue_training=False):
     # config params
     image_size = config["dataset"]["image_size"]
     channels = config["dataset"]["image_channels"]
@@ -167,9 +167,21 @@ def train_diffusion_model(config, train_dataloader, save_model_path, root_path, 
     mse = MeanSquaredError()
     fid = FrechetInceptionDistance(normalize=True)
     
-    # Initialize TensorBoard writer
-    writer = SummaryWriter(log_dir=f"{root_path}/logs")
+    # Initialize TensorBoard writer with unique run subfolder
+    log_dir = f"{root_path}/logs/{run_id}"
+    writer = SummaryWriter(log_dir=log_dir)
+    print(f"TensorBoard logs will be saved to: {log_dir}")
 
+    # Early stopping parameters
+    early_stopping = config["model"].get("early_stopping", {})
+    patience = early_stopping.get("patience", 10)
+    min_delta = early_stopping.get("min_delta", 1e-4)
+    validation_freq = early_stopping.get("validation_freq", 2000)
+    
+    # Early stopping variables
+    best_val_loss = np.inf
+    patience_counter = 0
+    
     # Start training
     start_time = time.time()
 
@@ -227,6 +239,60 @@ def train_diffusion_model(config, train_dataloader, save_model_path, root_path, 
                     
                     # Update number of steps                
                     n_iter += 1    
+
+                    # Validation loss computation and early stopping
+                    if n_iter % validation_freq == 0:
+                        # Set model to eval mode
+                        ddpm.model.eval()
+                        
+                        # Compute validation loss
+                        val_loss = 0.0
+                        val_batches = 0
+                        
+                        with torch.no_grad():
+                            for val_data in test_dataloader:
+                                val_x = val_data['image'].to(device)
+                                val_batch_size = val_x.shape[0]
+                                
+                                # Forward pass on validation data
+                                val_t = ddpm.sample_timesteps(val_batch_size)
+                                val_batch_loss = ddpm.p_losses(x=val_x, t=val_t, loss_type=loss_type)
+                                val_loss += val_batch_loss.item()
+                                val_batches += 1
+                        
+                        # Average validation loss
+                        if val_batches > 0:
+                            val_loss /= val_batches
+                            
+                            # Log validation loss to TensorBoard
+                            writer.add_scalar('Loss/validation', val_loss, n_iter)
+                            
+                            # Early stopping logic
+                            if val_loss < (best_val_loss - min_delta):
+                                best_val_loss = val_loss
+                                patience_counter = 0
+                                # Save best model
+                                save_model(ddpm.model, ddpm.optimizer, epoch, n_iter, val_loss, save_model_path, name="best_model")
+                                if use_ema: save_ema_model(ddpm.ema_model, epoch, n_iter, save_model_path, name="best_ema_model")
+                            else:
+                                patience_counter += 1
+                                
+                            # Log early stopping metrics
+                            writer.add_scalar('EarlyStopping/best_val_loss', best_val_loss, n_iter)
+                            writer.add_scalar('EarlyStopping/patience_counter', patience_counter, n_iter)
+                            
+                            # Check if patience is exceeded
+                            if patience_counter >= patience:
+                                print(f"Early stopping triggered at iteration {n_iter}. Best validation loss: {best_val_loss:.6f}")
+                                logging.info(f"Early stopping triggered at iteration {n_iter}. Best validation loss: {best_val_loss:.6f}")
+                                # Save final model before exiting
+                                save_model(ddpm.model, ddpm.optimizer, epoch, n_iter, loss, save_model_path, name="last_model")
+                                if use_ema: save_ema_model(ddpm.ema_model, epoch, n_iter, save_model_path, name="last_ema_model")
+                                writer.close()
+                                return  # Exit training function
+                        
+                        # Set model back to train mode
+                        ddpm.model.train()
 
                     # Save model checkpoint less frequently to improve performance
                     if n_iter % 100 == 0:  # Save every 100 iterations instead of every iteration

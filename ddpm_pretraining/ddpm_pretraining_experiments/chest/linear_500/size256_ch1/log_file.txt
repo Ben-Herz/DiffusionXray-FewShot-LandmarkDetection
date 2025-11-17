@@ -5,3 +5,15 @@ Total Trainable Params: 558548225
 Training completed in 00:14:29
 Total Trainable Params: 558548225
 Training completed in 01:40:59
+Total Trainable Params: 558548225
+Training completed in 00:06:16
+Total Trainable Params: 558548225
+Training completed in 00:02:39
+Total Trainable Params: 558548225
+Training completed in 00:22:47
+Total Trainable Params: 558548225
+Training completed in 00:49:03
+Total Trainable Params: 558548225
+Training completed in 00:09:15
+Total Trainable Params: 558548225
+Total Trainable Params: 558548225

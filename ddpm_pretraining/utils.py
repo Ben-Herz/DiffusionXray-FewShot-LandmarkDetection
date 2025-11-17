@@ -156,13 +156,24 @@ def get_transforms(image_size, phase='train'):
         raise ValueError('phase must be either "train" or "test"')
 
 
-def load_data(dataset_path, image_size, image_channels, batch_size, pin_memory=True, num_workers=None):    
+def load_data(dataset_path, image_size, image_channels, batch_size, pin_memory=True, num_workers=None, device=None):    
     dataset_name = os.path.basename(dataset_path)
     
-    # Optimize num_workers for multi-GPU training
+    # Optimize num_workers and batch_size based on device type
     if num_workers is None:
-        # Use more workers for multi-GPU training, but not too many to avoid overhead
-        num_workers = min(8, os.cpu_count() // 2)  # Limit to 8 workers max
+        if device is not None and device.type == "mps":
+            # For MPS, use no workers to avoid memory transfer overhead
+            num_workers = 0
+        else:
+            # Use more workers for multi-GPU training, but not too many to avoid overhead
+            num_workers = min(8, os.cpu_count() // 2)  # Limit to 8 workers max
+    
+    # For MPS, consider using a smaller batch size to fit in memory
+    if device is not None and device.type == "mps":
+        # Reduce batch size by half for MPS to improve stability
+        adjusted_batch_size = max(1, batch_size // 2)
+        print(f"Adjusting batch size for MPS: {batch_size} -> {adjusted_batch_size}")
+        batch_size = adjusted_batch_size
     
     transforms_train = get_transforms(image_size, phase='train')
     transforms_test = get_transforms(image_size, phase='test')

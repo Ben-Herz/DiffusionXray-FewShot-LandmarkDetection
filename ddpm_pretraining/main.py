@@ -77,10 +77,15 @@ if __name__ == "__main__":
     num_workers = 2 if config["dataset"]["num_workers"] == None else config["dataset"]["num_workers"]
 
     # Create train and test dataloaders
-    train_dataloader, test_dataloader = load_data(DATASET_PATH, image_size, image_channels, batch_size, pin_memory=pin_memory, num_workers=num_workers)
+    train_dataloader, test_dataloader = load_data(DATASET_PATH, image_size, image_channels, batch_size, pin_memory=pin_memory, num_workers=num_workers, device=device)
 
     # Save model path and tensorboard writer and path for the experiment
     PREFIX_PATH = f"{root_path}/{DATASET_NAME}/{config['model']['beta_schedule']['train']['schedule']}_{config['model']['beta_schedule']['train']['n_timestep']}/size{image_size}_ch{image_channels}"
+    
+    # Create a unique run identifier based on timestamp
+    import datetime
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_id = f"run_{timestamp}"
     
     # Create log file for the experiment
     if not os.path.exists(f'{PREFIX_PATH}/log_file.txt'):
@@ -107,6 +112,6 @@ if __name__ == "__main__":
     # Train diffusion model
     print("----------------------------------------- START TRAINING -----------------------------------------")
     print(f"Total epochs: {int(config['model']['iterations'] / (len(train_dataloader) / config['dataset']['grad_accumulation']))} | Total iterations: {config['model']['iterations']} | Iterations per epoch: {len(train_dataloader)/config['dataset']['grad_accumulation']}")
-    train_diffusion_model(config, train_dataloader, save_model_path, PREFIX_PATH, device, continue_training=config["model"]["continue_training"])
+    train_diffusion_model(config, train_dataloader, test_dataloader, save_model_path, PREFIX_PATH, device, run_id, continue_training=config["model"]["continue_training"])
 
     print("----------------------------------------- END TRAINING -----------------------------------------")
